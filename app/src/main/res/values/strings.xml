@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">YOUR DAY</string>
+    <string name="add_video">Add Video</string>
+    <string name="mediaModel">IMAGE LIST</string>
+
+    <string name="add_image">ADD IMAGE</string>
+    <string name="title_activity_day_">ScrollingActivity</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_day">ScrollingActivity</string>
+    <string name="item2">Item2</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="hello_first_fragment">Hello first fragment</string>
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="Video">VIDEO LIST</string>
+    <string name="textview">TextView</string>
+    <string name="your_day">YOUR DAY</string>
+    <string name="data">DATA</string>
+    <string name="describe_your_day">Describe your day</string>
+    <string name="add">ADD</string>
+    <string name="ignore">ignore</string>
+    <string name="image">IMAGE</string>
+    <string name="video">VIDEO</string>
+    <string name="SELECTIMPORT">SELECT IMPORT</string>
+</resources>
