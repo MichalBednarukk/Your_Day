@@ -3,6 +3,7 @@
 Memories of the day app created with Java and SQLite.
 
 ![Aplication Screen](./screen/YourDayAppScreen.png)
+![Aplication Screen](./screen/YourDayAppScreen2.png)
 ---
  # General info
 It is a simple application used to store pictures and video as a souvenir of the day.
