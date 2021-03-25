@@ -1,12 +1,15 @@
-package com.example.your_day;
+package com.example.your_day.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.example.your_day.DataBaseHelper;
+import com.example.your_day.R;
 import com.example.your_day.models.NoteModel;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -19,6 +22,7 @@ public class NoteActivity extends AppCompatActivity {
     DataBaseHelper dataBaseHelper;
     String date;
     NoteModel noteModelTest;
+    Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,29 +34,25 @@ public class NoteActivity extends AppCompatActivity {
         textInputLayout = findViewById(R.id.textInputLayout);
         dataBaseHelper = new DataBaseHelper(this);
         noteModelTest = dataBaseHelper.getNoteByDate(date);
-
-        if(noteModelTest.getId() != 0){
+        toolbar = findViewById(R.id.toolbarNoteActivity);
+        setSupportActionBar(toolbar);
+        if (noteModelTest.getId() != 0) {
             textInput.setText(noteModelTest.getFileUri());
         }
 
-        btnAddNote.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                boolean status;
-                NoteModel noteModel = new NoteModel(1, date, textInputLayout.getEditText().getText().toString());
-                if(noteModelTest.getId() == 0){
-                 status  = dataBaseHelper.addOne(noteModel, NOTE_TABLE);//add new media to the dataBase
+        btnAddNote.setOnClickListener(v -> {
+            boolean status;
+            NoteModel noteModel = new NoteModel(1, date, textInputLayout.getEditText().getText().toString());
+            if (noteModelTest.getId() == 0) {
+                status = dataBaseHelper.addOne(noteModel, NOTE_TABLE);//add new media to the dataBase
 
+            } else {
+                status = dataBaseHelper.updateNoteByDate(date, noteModel, noteModelTest.getId());
             }
-                else {
-                 status = dataBaseHelper.updateNoteByDate(date,noteModel,noteModelTest.getId());
-                }
-            if(status){
+            if (status) {
                 Toast.makeText(NoteActivity.this, "Text add successfully", Toast.LENGTH_LONG).show();
-            }
-            else {
+            } else {
                 Toast.makeText(NoteActivity.this, "Error, try again", Toast.LENGTH_LONG).show();
-            }
             }
         });
     }

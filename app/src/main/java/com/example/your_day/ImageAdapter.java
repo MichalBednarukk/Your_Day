@@ -2,6 +2,7 @@ package com.example.your_day;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,13 +16,15 @@ import com.bumptech.glide.Glide;
 import com.example.your_day.models.MediaModel;
 
 import java.util.ArrayList;
-;import static android.view.View.GONE;
+import static android.view.View.GONE;
+import static android.view.View.ROTATION;
 
-public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> {
+public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder>{
 
-    private ArrayList<MediaModel> mediaModels;
+    private final ArrayList<MediaModel> mediaModels;
     Context context;
     ItemClicked activity;
+
 
     public interface ItemClicked{
         void OnItemClicked(int index,String event);
@@ -43,15 +46,9 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
             super(itemView);
             imageView = itemView.findViewById(R.id.imageView);
             btnPlay = itemView.findViewById(R.id.btnPlay);
-
             btnDeleteImage = itemView.findViewById(R.id.btnDeleteImage);
 
-            itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    activity.OnItemClicked(mediaModels.indexOf((MediaModel) v.getTag()) , "VIEW");
-                }
-            });
+            itemView.setOnClickListener(v -> activity.OnItemClicked(mediaModels.indexOf((MediaModel) v.getTag()) , "VIEW"));
         }}
 
     @NonNull
@@ -66,55 +63,37 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
         viewHolder.itemView.setTag(mediaModels.get(position));
         Activity activity = (Activity) context;
         ItemClicked itemClicked = (ItemClicked) context;
+        int index = mediaModels.size() - position - 1;
+        if(index != mediaModels.size()-1) {
+            if (mediaModels.get(index).getisImage()) {
+                Glide.with(activity)
+                        .load(mediaModels.get(index).getFileUri())
+                        .into(viewHolder.imageView);
+                viewHolder.btnPlay.setVisibility(GONE);
+            } else {//Media is video
+                Glide.with(activity).load("empty")
+                        .thumbnail(Glide.with(activity).load(mediaModels.get(index).getFileUri()))
+                        .into(viewHolder.imageView);
+                viewHolder.btnPlay.setOnClickListener(v -> itemClicked.OnItemClicked(index, "VIEW"));
 
-        if (mediaModels.get(position).getisImage() == true) {
+            }
+            viewHolder.imageView.setOnClickListener(v -> itemClicked.OnItemClicked(index, "VIEW"));
+            viewHolder.btnDeleteImage.setOnClickListener(v -> itemClicked.OnItemClicked(index, "DELETE"));
+        }
+        else{
             Glide.with(activity)
-                    .load(mediaModels.get(position).getFileUri())
+                    .load(mediaModels.get(index).getFileUri())
                     .into(viewHolder.imageView);
             viewHolder.btnPlay.setVisibility(GONE);
-            viewHolder.imageView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    itemClicked.OnItemClicked(position,"VIEW");
-                }
-            });
-            viewHolder.btnDeleteImage.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    itemClicked.OnItemClicked(position,"DELETE");
-                }
-            });
-
+            viewHolder.btnDeleteImage.setVisibility(GONE);
+            viewHolder.imageView.setOnClickListener(v -> itemClicked.OnItemClicked(index, "ADD_MEDIA"));
         }
-        else {
-            Glide.with(activity).load("empty")
-                    .thumbnail(Glide.with(activity).load(mediaModels.get(position).getFileUri()))
-                    .into(viewHolder.imageView);
-            viewHolder.btnPlay.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    itemClicked.OnItemClicked(position,"VIEW");
-                }
-            });
-            viewHolder.imageView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    itemClicked.OnItemClicked(position,"VIEW");
-                }
-            });
-            viewHolder.btnDeleteImage.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    itemClicked.OnItemClicked(position,"DELETE");
-                }
-            });
-
-        }
-        }
+    }
 
     @Override
     public int getItemCount() {
         return mediaModels.size();
     }
+
 
 }

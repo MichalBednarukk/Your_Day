@@ -1,4 +1,4 @@
-package com.example.your_day;
+package com.example.your_day.activities;
 
 
 import android.Manifest;
@@ -11,6 +11,24 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.Button;
+import android.widget.PopupMenu;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -19,19 +37,13 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import android.os.Environment;
-import android.provider.DocumentsContract;
-import android.provider.MediaStore;
-import android.util.Log;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ImageButton;
-import android.widget.PopupMenu;
-import android.widget.TextView;
-import android.widget.Toast;
+
+import com.example.your_day.BuildConfig;
+import com.example.your_day.DataBaseHelper;
+import com.example.your_day.ImageAdapter;
+import com.example.your_day.R;
 import com.example.your_day.models.MediaModel;
+
 import java.io.File;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -42,154 +54,123 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
-import static androidx.recyclerview.widget.RecyclerView.*;
 
-public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemClicked {
-    public static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
-    public static final int MEDIA_TYPE_VIDEO = 2;
-    public static final int MEDIA_TYPE_IMAGE = 1;
+import static android.content.Intent.EXTRA_INTENT;
+import static androidx.recyclerview.widget.RecyclerView.LayoutManager;
+
+public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemClicked, Handler.Callback {
+    protected static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+    protected static final int MEDIA_TYPE_VIDEO = 2;
+    protected static final int MEDIA_TYPE_IMAGE = 1;
     private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
     private static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
     private static final int LOAD_IMG_REQUEST_CODE = 300;
     private static final int LOAD_VIDEO_REQUEST_CODE = 400;
-    public DayActivity ActivityContext = null;
-    public static final String MEDIA_TABLE = "MEDIA_TABLE";
-    String date;
-    Uri fileUri;
-    Toolbar toolbar;
-    Button btn_addImage, btn_addVideo;
-    ImageButton btnGoRight, btnGoLeft, btnAddText, btnImportPhoto;
-    TextView tv_day;
-    TextView tv_day_data;
-    RecyclerView recyclerView;
-    Adapter myAdapter;
-    LayoutManager layoutManager;
-    DataBaseHelper dataBaseHelper;
-    ArrayList<MediaModel> mediaModels;
+    protected DayActivity ActivityContext = null;
+    protected static final String MEDIA_TABLE = "MEDIA_TABLE";
+    private HandlerThread thread;
+    private Handler handler;
+    private String date;
+    private Uri fileUri;
+    private Toolbar toolbar;
+    private TextView tv_day_data;
+    private RecyclerView recyclerView;
+    private ImageAdapter myAdapter;
+    private LayoutManager layoutManager;
+    private DataBaseHelper dataBaseHelper;
+    private ArrayList<MediaModel> mediaModels;
+    float x1, x2, y1, y2;
 
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_day);
-        setSupportActionBar(toolbar);
         date = getIntent().getStringExtra("DATE");
         ActivityContext = this;
         dataBaseHelper = new DataBaseHelper(this);
         toolbar = findViewById(R.id.toolbar);
-        btn_addImage = findViewById(R.id.btn_addImage);
-        btn_addVideo = findViewById(R.id.btn_addVideo);
-        btnGoRight = findViewById(R.id.btnGoRight);
-        btnGoLeft = findViewById(R.id.btnGoLeft);
-        btnAddText = findViewById(R.id.btnAddText);
-        btnImportPhoto = findViewById(R.id.btnImportPhoto);
-        btn_addVideo = findViewById(R.id.btn_addVideo);
-        tv_day = findViewById(R.id.tv_day);
         tv_day_data = findViewById(R.id.tv_day_data);
         recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setHasFixedSize(true);
-        layoutManager = new GridLayoutManager(ActivityContext, 2);
-        recyclerView.setLayoutManager(layoutManager);
-        mediaModels = new ArrayList<>();
-        tv_day.setText("YOUR DAY");
+        setSupportActionBar(toolbar);
         tv_day_data.setText(date);
-        mediaModels = dataBaseHelper.getMediaList(date);
-        myAdapter = new ImageAdapter(ActivityContext, mediaModels);
-        recyclerView.setAdapter(myAdapter);
 
+        thread = new HandlerThread("Thread");
+        thread.start();
+        handler = new Handler(thread.getLooper(), this);
+        handler.sendEmptyMessage(0);
 
-        btnImportPhoto.setOnClickListener(v -> showMenu(v));
+        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent touchEvent) {
+                switch (touchEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        x1 = touchEvent.getX();
+                        y1 = touchEvent.getY();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        x2 = touchEvent.getX();
+                        y2 = touchEvent.getY();
+                        System.out.println("x1= " + x1 + " x2= " + x2 + " y1= " + y1 + " y2= " + y2);
+                        if (x1 - x2 > 400) {//Go to next day
+                            DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
+                            try {
+                                Date day = format.parse(date);
+                                Calendar calendar = Calendar.getInstance();
+                                assert day != null;
+                                calendar.setTime(day);
+                                calendar.add(Calendar.DATE, +1);
+                                Date yesterday = calendar.getTime();
+                                @SuppressLint("SimpleDateFormat") SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                String stringYesterday = simpleDateFormat.format(yesterday);
+                                Intent intent = new Intent(DayActivity.this
+                                        , DayActivity.class);
+                                intent.putExtra("DATE", stringYesterday);
+                                intent.putExtra("NAVIGATION", "RIGHT");
+                                finish();
+                                DayActivity.this.overridePendingTransition(R.anim.slide_in_right, R.anim.wait);
+                                startActivity(intent);
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
 
-        btnAddText.setOnClickListener(v -> {
-            Intent intent = new Intent(DayActivity.this, NoteActivity.class);
-            intent.putExtra("DATE", date);
-            startActivity(intent);
-        });//Add note of the day (go to NoteActivity)
-
-        btnGoLeft.setOnClickListener(v -> {
-            DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
-            try {
-                Date day = format.parse(date);
-                Calendar calendar = Calendar.getInstance();
-                assert day != null;
-                calendar.setTime(day);
-                calendar.add(Calendar.DATE, -1);
-                Date yesterday = calendar.getTime();
-                @SuppressLint("SimpleDateFormat") SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                String stringYesterday = simpleDateFormat.format(yesterday);
-                Intent intent = new Intent(DayActivity.this
-                        , DayActivity.class);
-                intent.putExtra("DATE", stringYesterday);
-                intent.putExtra("NAVIGATION", "LEFT");
-                finish();
-                DayActivity.this.overridePendingTransition(R.anim.slide_in_left, R.anim.wait);
-                startActivity(intent);
-            } catch (ParseException e) {
-                e.printStackTrace();
+                        } else if (x1 - x2 < -400) {//Go to day before
+                            DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
+                            try {
+                                Date day = format.parse(date);
+                                Calendar calendar = Calendar.getInstance();
+                                assert day != null;
+                                calendar.setTime(day);
+                                calendar.add(Calendar.DATE, -1);
+                                Date yesterday = calendar.getTime();
+                                @SuppressLint("SimpleDateFormat") SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                String stringYesterday = simpleDateFormat.format(yesterday);
+                                Intent intent = new Intent(DayActivity.this
+                                        , DayActivity.class);
+                                intent.putExtra("DATE", stringYesterday);
+                                intent.putExtra("NAVIGATION", "LEFT");
+                                finish();
+                                DayActivity.this.overridePendingTransition(R.anim.slide_in_left, R.anim.wait);
+                                startActivity(intent);
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        break;
+                }
+                return false;
             }
-        });// Go to day before
 
-        btnGoRight.setOnClickListener(v -> {
-            DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
-            try {
-                Date  day = format.parse(date);
-                Calendar calendar = Calendar.getInstance();
-                assert day != null;
-                calendar.setTime(day);
-                calendar.add(Calendar.DATE, +1);
-                Date yesterday = calendar.getTime();
-                @SuppressLint("SimpleDateFormat") SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                String stringYesterday = simpleDateFormat.format(yesterday);
-                Intent intent = new Intent(DayActivity.this
-                        , DayActivity.class);
-                intent.putExtra("DATE", stringYesterday);
-                intent.putExtra("NAVIGATION", "RIGHT");
-                finish();
-                DayActivity.this.overridePendingTransition(R.anim.slide_in_right, R.anim.wait);
-                startActivity(intent);
-            } catch (ParseException e) {
-                e.printStackTrace();
+            @Override
+            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+
             }
-        });//Go to next day
 
-        btn_addVideo.setOnClickListener(arg0 -> {
+            @Override
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
 
-            // create new Intentwith with Standard Intent action that can be
-            // sent to have the camera application capture an video and return it.
-            Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-
-            // create a file to save the video
-            fileUri = FileProvider.getUriForFile(DayActivity.this, BuildConfig.APPLICATION_ID + ".provider", Objects.requireNonNull(getOutputMediaFile(MEDIA_TYPE_VIDEO)));
-            // set the image file name
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
-
-            // set the video image quality to high
-            intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
-
-            // start the Video Capture Intent
-            startActivityForResult(intent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
-
-        });// Add new image by camera
-
-        btn_addImage.setOnClickListener(arg0 -> {
-
-            // create new Intentwith with Standard Intent action that can be
-            // sent to have the camera application capture an video and return it.
-            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
-            // create a file to save the video
-            fileUri = FileProvider.getUriForFile(DayActivity.this, DayActivity.this.getApplicationContext().getPackageName() + ".provider", Objects.requireNonNull(getOutputMediaFile(MEDIA_TYPE_IMAGE)));
-
-            // set the image file name
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
-
-            // start the Video Capture Intent
-            startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
-
-        });// Add new video by camera
-
-
+            }
+        });
     }
 
     private File getOutputMediaFile(int type) {
@@ -202,13 +183,10 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         File mediaFile;
 
         if (type == MEDIA_TYPE_VIDEO) {
-
             // For unique video file name appending current timeStamp with file name
             mediaFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/MyApp" + File.separator +
                     "VID_" + timeStamp + number + ".mp4");
-
         } else if (type == MEDIA_TYPE_IMAGE) {
-
             // For unique video file name appending current timeStamp with file name
             mediaFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/MyApp" + File.separator +
                     "IMG_" + timeStamp + number + ".JPG");
@@ -230,9 +208,6 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
             if (resultCode == RESULT_OK) {
                 MediaModel mediaModel = new MediaModel(1, date, fileUri.toString(), false);
                 dataBaseHelper.addOne(mediaModel, MEDIA_TABLE);//add new media to the dataBase
-                mediaModels = dataBaseHelper.getMediaList(date);
-                myAdapter = new ImageAdapter(this, mediaModels);
-                recyclerView.setAdapter(myAdapter);
                 // Video captured and saved to fileUri specified in the Intent
                 Toast.makeText(this, "Video add successfully", Toast.LENGTH_LONG).show();
             } else if (resultCode == RESULT_CANCELED) {
@@ -250,9 +225,6 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
             if (resultCode == RESULT_OK) {
                 MediaModel mediaModel = new MediaModel(1, date, fileUri.toString(), true);
                 dataBaseHelper.addOne(mediaModel, MEDIA_TABLE);//add new media to the dataBase
-                mediaModels = dataBaseHelper.getMediaList(date);
-                myAdapter = new ImageAdapter(ActivityContext, mediaModels);
-                recyclerView.setAdapter(myAdapter);
                 Toast.makeText(this, "Image add successfully"
                         , Toast.LENGTH_LONG).show();
             } else if (resultCode == RESULT_CANCELED) {
@@ -266,17 +238,12 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
                         Toast.LENGTH_LONG).show();
             }
         }
-
-
         if (requestCode == LOAD_IMG_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
 
                 Uri selectedImage = data.getData();
                 MediaModel mediaModel = new MediaModel(1, date, getFullPathFromContentUri(DayActivity.this, selectedImage), true);
                 dataBaseHelper.addOne(mediaModel, MEDIA_TABLE);//add new media to the dataBase
-                mediaModels = dataBaseHelper.getMediaList(date);
-                myAdapter = new ImageAdapter(ActivityContext, mediaModels);
-                recyclerView.setAdapter(myAdapter);
                 Toast.makeText(this, "Image import successfully"
                         , Toast.LENGTH_LONG).show();
             } else if (resultCode == RESULT_CANCELED) {
@@ -295,9 +262,6 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
                 Uri selectedVideo = data.getData();
                 MediaModel mediaModel = new MediaModel(1, date, getFullPathFromContentUri(DayActivity.this, selectedVideo), false);
                 dataBaseHelper.addOne(mediaModel, MEDIA_TABLE);//add new media to the dataBase
-                mediaModels = dataBaseHelper.getMediaList(date);
-                myAdapter = new ImageAdapter(this, mediaModels);
-                recyclerView.setAdapter(myAdapter);
                 Toast.makeText(this, "Video import successfully"
                         , Toast.LENGTH_LONG).show();
             } else if (resultCode == RESULT_CANCELED) {
@@ -311,6 +275,8 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
                         Toast.LENGTH_LONG).show();
             }
         }
+
+        handler.sendEmptyMessage(0);//uploading a display to a thread
     }
 
     public void mkFolder(String folderName) { // make a folder under Environment.DIRECTORY_DCIM
@@ -394,10 +360,14 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         }
         if (event.equals("DELETE")) {
             dataBaseHelper.deleteOneById(mediaModels.get(index).getId());
+            getApplicationContext().getContentResolver().delete(Uri.parse(mediaModels.get(index).getFileUri()), null, null);
             Toast.makeText(this, "Delete successfully", Toast.LENGTH_LONG).show();
             mediaModels = dataBaseHelper.getMediaList(date);
             myAdapter = new ImageAdapter(ActivityContext, mediaModels);
             recyclerView.setAdapter(myAdapter);
+        }
+        if (event.equals("ADD_MEDIA")) {
+            showMenu(findViewById(R.id.imageView), "camera");
         }
     }
 
@@ -414,7 +384,7 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
     }
 
 
-    private void showMenu(View v) {
+    private void showMenu(View v,String from) {
         PopupMenu popup = new PopupMenu(DayActivity.this, v);
         MenuInflater inflater = popup.getMenuInflater();
         inflater.inflate(R.menu.media_menu, popup.getMenu());
@@ -422,22 +392,54 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                if (item.toString().equals("IMAGE")) {
-                    Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-                    photoPickerIntent.setType("image/*");
-                    startActivityForResult(photoPickerIntent, LOAD_IMG_REQUEST_CODE);
-                    return true;
+                if(from.equals("gallery")) {
+                    if (item.toString().equals("IMAGE")) {
+                        Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                        photoPickerIntent.setType("image/*");
+                        startActivityForResult(photoPickerIntent, LOAD_IMG_REQUEST_CODE);
+                        return true;
+                    }
+                    if (item.toString().equals("VIDEO")) {
+                        Intent videoPickerIntent = new Intent(Intent.ACTION_PICK);
+                        videoPickerIntent.setType("video/*");
+                        startActivityForResult(videoPickerIntent, LOAD_VIDEO_REQUEST_CODE);
+                        return true;
+                    }
                 }
-                if (item.toString().equals("VIDEO")) {
-                    Intent videoPickerIntent = new Intent(Intent.ACTION_PICK);
-                    videoPickerIntent.setType("video/*");
-                    startActivityForResult(videoPickerIntent, LOAD_VIDEO_REQUEST_CODE);
-                    return true;
-                }
+                if(from.equals("camera")){
+                    if (item.toString().equals("IMAGE")) {
+                        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+                        // create a file to save the video
+                        fileUri = FileProvider.getUriForFile(DayActivity.this, DayActivity.this.getApplicationContext().getPackageName() + ".provider", Objects.requireNonNull(getOutputMediaFile(MEDIA_TYPE_IMAGE)));
+
+                        // set the image file name
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
+
+                        // start the Image Capture Intent
+                        startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+                        return true;
+                    }
+                    if (item.toString().equals("VIDEO")) {
+
+                        Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+
+                        // create a file to save the video
+                        fileUri = FileProvider.getUriForFile(DayActivity.this, BuildConfig.APPLICATION_ID + ".provider", Objects.requireNonNull(getOutputMediaFile(MEDIA_TYPE_VIDEO)));
+                        // set the image file name
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
+
+                        // set the video image quality to high
+                        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
+                        // start the Video Capture Intent
+                        startActivityForResult(intent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
+                        return true;
+                    }
+            }
                 return false;
             }
         });
-
         popup.show();
     }
 
@@ -445,7 +447,6 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
     public static String getFullPathFromContentUri(final Context context, final Uri uri) {
 
         final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-
         // DocumentProvider
         if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
             // ExternalStorageProvider
@@ -465,7 +466,7 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
 
                 final String id = DocumentsContract.getDocumentId(uri);
                 final Uri contentUri = ContentUris.withAppendedId(
-                        Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+                        Uri.parse("content://downloads/public_downloads"), Long.parseLong(id));
 
                 return getDataColumn(context, contentUri, null, null);
             }
@@ -521,26 +522,67 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         return null;
     }
 
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.day_menu, menu);
+        return true;
+    }
+
+    @SuppressLint("NonConstantResourceId")
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.addNote:
+                Intent intent = new Intent(DayActivity.this, NoteActivity.class);
+                intent.putExtra("DATE", date);
+                startActivity(intent);
+                return true;
+            case R.id.importPhoto:
+                showMenu(findViewById(R.id.importPhoto),"gallery");
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
     private static String getDataColumn(Context context, Uri uri, String selection,
                                         String[] selectionArgs) {
 
-        Cursor cursor = null;
         final String column = "_data";
-        final String[] projection = {
-                column
-        };
-
+        final String[] projection = {column};
         try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
-                    null);
-            if (cursor != null && cursor.moveToFirst()) {
-                final int column_index = cursor.getColumnIndexOrThrow(column);
-                return cursor.getString(column_index);
+            try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
+                    null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    final int column_index = cursor.getColumnIndexOrThrow(column);
+                    return cursor.getString(column_index);
+                }
             }
-        } finally {
-            if (cursor != null)
-                cursor.close();
+        }
+        catch (Exception e){
+            e.printStackTrace();
         }
         return null;
     }
+
+    @Override
+    public boolean handleMessage(@NonNull Message msg) {
+        mediaModels = new ArrayList<>();
+        mediaModels = dataBaseHelper.getMediaList(date);
+        Uri path = Uri.parse("android.resource://"+BuildConfig.APPLICATION_ID+"/" + R.drawable.addbutton);
+        mediaModels.add(new MediaModel(0,date,path.toString(),true));
+        runOnUiThread(() -> {
+            recyclerView.setHasFixedSize(true);
+            layoutManager = new GridLayoutManager(ActivityContext, 2);
+            recyclerView.setLayoutManager(layoutManager);
+            myAdapter = new ImageAdapter(ActivityContext, mediaModels);
+            recyclerView.setAdapter(myAdapter);
+        });
+        return true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        thread.quit();
+    }
 }
+

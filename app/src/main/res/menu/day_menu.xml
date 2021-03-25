@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/addNote"
+        android:icon="@drawable/add_text"
+        android:title="Add Note"
+        app:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/importPhoto"
+        android:icon="@drawable/import_photo"
+        android:title="Import"
+        app:showAsAction="ifRoom"/>
+</menu>
