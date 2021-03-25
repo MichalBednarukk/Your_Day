@@ -4,6 +4,7 @@ Memories of the day app created with Java and SQLite.
 
 <<<<<<< HEAD
 ![Aplication Screen](./screen/YourDayAppScreen.png)
+![Aplication Screen](./screen/YourDayAppScreen2.png)
 ---
 =======
 ![Aplication Screen](./screen/YourDayAppScreen.png) ![Aplication Screen](./screen/YourDayAppScreen2.png)
