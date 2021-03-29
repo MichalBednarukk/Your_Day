@@ -18,23 +18,24 @@ import android.os.Message;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -43,6 +44,7 @@ import com.example.your_day.DataBaseHelper;
 import com.example.your_day.ImageAdapter;
 import com.example.your_day.R;
 import com.example.your_day.models.MediaModel;
+import com.google.android.material.navigation.NavigationView;
 
 import java.io.File;
 import java.text.DateFormat;
@@ -55,7 +57,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 
-import static android.content.Intent.EXTRA_INTENT;
 import static androidx.recyclerview.widget.RecyclerView.LayoutManager;
 
 public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemClicked, Handler.Callback {
@@ -72,15 +73,15 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
     private Handler handler;
     private String date;
     private Uri fileUri;
-    private Toolbar toolbar;
-    private TextView tv_day_data;
     private RecyclerView recyclerView;
     private ImageAdapter myAdapter;
     private LayoutManager layoutManager;
     private DataBaseHelper dataBaseHelper;
     private ArrayList<MediaModel> mediaModels;
     float x1, x2, y1, y2;
-
+    private DrawerLayout drawerLayout;
+    private ActionBarDrawerToggle drawerToggle;
+    private NavigationView navigationView;
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,17 +90,46 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         date = getIntent().getStringExtra("DATE");
         ActivityContext = this;
         dataBaseHelper = new DataBaseHelper(this);
-        toolbar = findViewById(R.id.toolbar);
-        tv_day_data = findViewById(R.id.tv_day_data);
         recyclerView = findViewById(R.id.recyclerView);
-        setSupportActionBar(toolbar);
-        tv_day_data.setText(date);
 
         thread = new HandlerThread("Thread");
         thread.start();
         handler = new Handler(thread.getLooper(), this);
         handler.sendEmptyMessage(0);
 
+        drawerLayout = findViewById(R.id.activity_main);
+        drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, 0, 0);
+        drawerLayout.addDrawerListener(drawerToggle);
+        drawerToggle.syncState();
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setTitle("DAY  " + date);
+
+        navigationView = findViewById(R.id.nv);
+        navigationView = (NavigationView) findViewById(R.id.nv);
+        navigationView.bringToFront();
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            public boolean onNavigationItemSelected(MenuItem item) {
+                int id = item.getItemId();
+                switch(id) {
+                    case R.id.home:
+                        Intent intent = new Intent(DayActivity.this
+                                , MainActivity.class);
+                        startActivity(intent);
+                        return true;
+                    case R.id.day:
+                        drawerLayout.closeDrawer(Gravity.LEFT);
+                        return true;
+                    case R.id.settings:
+                        Toast.makeText(DayActivity.this,
+                                "My Cart",Toast.LENGTH_SHORT).show();
+                        drawerLayout.closeDrawer(Gravity.LEFT);
+                        return true;
+                    default:
+                        return true;
+                }
+            }
+        });
         recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
             @Override
             public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent touchEvent) {
@@ -539,6 +569,8 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
                 showMenu(findViewById(R.id.importPhoto),"gallery");
                 return true;
             default:
+                if(drawerToggle.onOptionsItemSelected(item))
+                    return true;
                 return super.onOptionsItemSelected(item);
         }
     }
@@ -584,5 +616,6 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         super.onDestroy();
         thread.quit();
     }
+
 }
 

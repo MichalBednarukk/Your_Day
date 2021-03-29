@@ -8,6 +8,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="gray">#A86C6A6A</color>
-    <color name="activity_background">#958585</color>
-    <color name="image_background">#FC535353</color>
+    <color name="activity_background">#474747</color>
+    <color name="image_background">#515050</color>
 </resources>

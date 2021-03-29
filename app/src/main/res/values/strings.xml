@@ -1,9 +1,7 @@
 <resources>
-    <string name="app_name">YOUR DAY</string>
-    <string name="add_video">Add Video</string>
+    <string name="app_name">Moments</string>
     <string name="mediaModel">IMAGE LIST</string>
 
-    <string name="add_image">ADD IMAGE</string>
     <string name="title_activity_day_">ScrollingActivity</string>
 
     <string name="action_settings">Settings</string>
@@ -27,4 +25,8 @@
     <string name="image">IMAGE</string>
     <string name="video">VIDEO</string>
     <string name="SELECTIMPORT">SELECT IMPORT</string>
+    <string name="home">Home</string>
+    <string name="day">Day</string>
+    <string name="settings">Settings</string>
+    <string name="imagedisplay">ImageDisplay</string>
 </resources>
