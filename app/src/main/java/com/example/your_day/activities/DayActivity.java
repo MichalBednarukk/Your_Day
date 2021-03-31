@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -45,6 +46,12 @@ import com.example.your_day.models.MediaModel;
 import com.google.android.material.navigation.NavigationView;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.channels.FileChannel;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -263,7 +270,6 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         }
         if (requestCode == LOAD_IMG_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
-
                 Uri selectedImage = data.getData();
                 MediaModel mediaModel = new MediaModel(1, date, getFullPathFromContentUri(DayActivity.this, selectedImage), true);
                 dataBaseHelper.addOne(mediaModel, MEDIA_TABLE);//add new media to the dataBase
@@ -316,9 +322,11 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         }
         if (event.equals("DELETE")) {
             dataBaseHelper.deleteOneById(mediaModels.get(index).getId());
-            getApplicationContext().getContentResolver().delete(Uri.parse(mediaModels.get(index).getFileUri()), null, null);
+           // getApplicationContext().getContentResolver().delete(Uri.parse(mediaModels.get(index).getFileUri()), null, null);
             Toast.makeText(this, "Delete successfully", Toast.LENGTH_LONG).show();
             mediaModels = dataBaseHelper.getMediaList(date);
+            Uri path = Uri.parse("android.resource://"+BuildConfig.APPLICATION_ID+"/" + R.drawable.addbutton);
+            mediaModels.add(new MediaModel(0,date,path.toString(),true));
             myAdapter = new ImageAdapter(ActivityContext, mediaModels);
             recyclerView.setAdapter(myAdapter);
         }
@@ -567,6 +575,22 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
             } else {
                 Log.e("value", "Permission Denied, You cannot use camera.");
             }
+        }
+    }
+    private static void copyFileUsingStream(File source, File dest) throws IOException {
+        InputStream is = null;
+        OutputStream os = null;
+        try {
+            is = new FileInputStream(source);
+            os = new FileOutputStream(dest);
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
+            }
+        } finally {
+            is.close();
+            os.close();
         }
     }
 }

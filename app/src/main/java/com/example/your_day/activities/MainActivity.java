@@ -1,5 +1,6 @@
 package com.example.your_day.activities;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -13,6 +14,7 @@ import android.view.MenuItem;
 import android.widget.CalendarView;
 import android.widget.Toast;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -46,6 +48,7 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
     private RecyclerView recyclerView;
     private DayAdapter myAdapter;
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @SuppressLint({"NonConstantResourceId", "RtlHardcoded"})
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -84,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
             }
         });
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
             if (checkPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) { //do your work
                 File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "MyApp");
                 if (folder.exists()) {
@@ -103,7 +106,14 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
             } else {
                 requestPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
-        }
+
+
+            if (checkPermission(Manifest.permission.READ_EXTERNAL_STORAGE)) { //do your work
+            }
+            else {
+                requestPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+            }
+
 
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -144,27 +154,6 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
                     return true;
             }
         });
-//        calendarView = findViewById(R.id.calendarView);
-//        calendarView.setOnDateChangeListener((view, year, month, dayOfMonth) -> {
-//            String sMonth;
-//            String sDayOfMonth;
-//            month += 1;
-//            if (month < 10) {
-//                sMonth = "0" + month;
-//            } else {
-//                sMonth = "" + month;
-//            }
-//            if (dayOfMonth < 10) {
-//                sDayOfMonth = "0" + dayOfMonth;
-//            } else {
-//                sDayOfMonth = "" + dayOfMonth;
-//            }
-//            String date = year + "-" + sMonth + "-" + sDayOfMonth;
-//            Intent intent = new Intent(MainActivity.this
-//                    , DayActivity.class);
-//            intent.putExtra("DATE", date);
-//            startActivity(intent);
-//        });
 
     }
 
@@ -185,12 +174,40 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
                 }
             }
         }
+        if (type.equals(Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, type)) {
+                Toast.makeText(this, "Write External Storage permission allows us to do store images. Please allow this permission in App Settings.", Toast.LENGTH_LONG).show();
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    requestPermissions(new String[]{type}, 200);
+                }
+            }
+        }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case 100:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "MyApp");
+                    if (folder.exists()) {
+                        Log.d("myAppName", "folder exist:" + folder.toString());
+                    } else {
+                        try {
+                            if (folder.mkdir()) {
+                                Log.d("myAppName", "folder created:" + folder.toString());
+                            } else {
+                                Log.d("myAppName", "creat folder fails:" + folder.toString());
+                            }
+                        } catch (Exception ecp) {
+                            ecp.printStackTrace();
+                        }
+                    }
+                } else {
+                    Log.e("value", "Permission Denied, You cannot use local drive .");
+                }
+            case 200:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                 } else {
@@ -212,6 +229,7 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
         return super.onOptionsItemSelected(item);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void OnItemClicked(int index, LocalDate localDate) {
         int month = localDate.getMonthValue();
