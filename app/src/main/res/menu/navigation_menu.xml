@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/home"
-        android:title="@string/home"/>
-    <item android:id="@+id/day"
-        android:title="@string/day"/>
-    <item android:id="@+id/settings"
-
-        android:title="@string/settings"/>
+    <item
+        android:id="@+id/home"
+        android:icon="@drawable/ic_home_black_18dp"
+        android:title="@string/home" />
+    <item
+        android:id="@+id/day"
+        android:icon="@drawable/ic_today"
+        android:title="@string/day" />
+    <item
+        android:id="@+id/settings"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/settings" />
 </menu>

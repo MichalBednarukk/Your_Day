@@ -15,7 +15,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
-import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Gravity;
@@ -25,7 +24,6 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.PopupMenu;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -57,10 +55,10 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Random;
 
+import static android.provider.DocumentsContract.*;
 import static androidx.recyclerview.widget.RecyclerView.LayoutManager;
 
 public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemClicked, Handler.Callback {
-    protected static final int MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
     protected static final int MEDIA_TYPE_VIDEO = 2;
     protected static final int MEDIA_TYPE_IMAGE = 1;
     private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
@@ -81,8 +79,8 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
     float x1, x2, y1, y2;
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle drawerToggle;
-    private NavigationView navigationView;
-    @SuppressLint("SetTextI18n")
+
+    @SuppressLint({"SetTextI18n", "NonConstantResourceId", "RtlHardcoded"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,33 +99,29 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, 0, 0);
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setTitle("DAY  " + date);
 
-        navigationView = findViewById(R.id.nv);
-        navigationView = (NavigationView) findViewById(R.id.nv);
+        NavigationView navigationView = findViewById(R.id.navigation_view);
         navigationView.bringToFront();
-        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            public boolean onNavigationItemSelected(MenuItem item) {
-                int id = item.getItemId();
-                switch(id) {
-                    case R.id.home:
-                        Intent intent = new Intent(DayActivity.this
-                                , MainActivity.class);
-                        startActivity(intent);
-                        return true;
-                    case R.id.day:
-                        drawerLayout.closeDrawer(Gravity.LEFT);
-                        return true;
-                    case R.id.settings:
-                        Toast.makeText(DayActivity.this,
-                                "My Cart",Toast.LENGTH_SHORT).show();
-                        drawerLayout.closeDrawer(Gravity.LEFT);
-                        return true;
-                    default:
-                        return true;
-                }
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            switch(id) {
+                case R.id.home:
+                    Intent intent = new Intent(DayActivity.this
+                            , MainActivity.class);
+                    startActivity(intent);
+                    return true;
+                case R.id.day:
+                    drawerLayout.closeDrawer(Gravity.LEFT);
+                    return true;
+                case R.id.settings:
+                    Toast.makeText(DayActivity.this,
+                            "My Cart",Toast.LENGTH_SHORT).show();
+                    drawerLayout.closeDrawer(Gravity.LEFT);
+                    return true;
+                default:
+                    return true;
             }
         });
         recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
@@ -204,7 +198,6 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
     }
 
     private File getOutputMediaFile(int type) {
-        mkFolder("MyApp");//create new directory is not exist
 
         String timeStamp = date;
         Random generator = new Random();
@@ -309,73 +302,6 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         handler.sendEmptyMessage(0);//uploading a display to a thread
     }
 
-    public void mkFolder(String folderName) { // make a folder under Environment.DIRECTORY_DCIM
-        String state = Environment.getExternalStorageState();
-        if (!Environment.MEDIA_MOUNTED.equals(state)) {
-            Log.d("myAppName", "Error: external storage is unavailable");
-            return;
-        }
-        Log.d("myAppName", "External storage is not read only or unavailable");
-
-        if (ContextCompat.checkSelfPermission(this, // request permission when it is not granted.
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            Log.d("myAppName", "permission:WRITE_EXTERNAL_STORAGE: NOT granted!");
-            // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
-        }
-        File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), folderName);
-        int result = 0;
-        if (folder.exists()) {
-            Log.d("myAppName", "folder exist:" + folder.toString());
-            result = 2; // folder exist
-        } else {
-            try {
-                if (folder.mkdir()) {
-                    Log.d("myAppName", "folder created:" + folder.toString());
-                    result = 1; // folder created
-                } else {
-                    Log.d("myAppName", "creat folder fails:" + folder.toString());
-                    result = 0; // creat folder fails
-                }
-            } catch (Exception ecp) {
-                ecp.printStackTrace();
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE: {
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                } else {
-                }
-                return;
-            }
-        }
-    }
-
     @Override
     public void OnItemClicked(int index, String event) {
 
@@ -415,73 +341,75 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
 
 
     private void showMenu(View v,String from) {
-        PopupMenu popup = new PopupMenu(DayActivity.this, v);
+        PopupMenu popup;
+        popup = new PopupMenu(DayActivity.this, v);
         MenuInflater inflater = popup.getMenuInflater();
         inflater.inflate(R.menu.media_menu, popup.getMenu());
 
-        popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                if(from.equals("gallery")) {
-                    if (item.toString().equals("IMAGE")) {
-                        Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-                        photoPickerIntent.setType("image/*");
-                        startActivityForResult(photoPickerIntent, LOAD_IMG_REQUEST_CODE);
-                        return true;
-                    }
-                    if (item.toString().equals("VIDEO")) {
-                        Intent videoPickerIntent = new Intent(Intent.ACTION_PICK);
-                        videoPickerIntent.setType("video/*");
-                        startActivityForResult(videoPickerIntent, LOAD_VIDEO_REQUEST_CODE);
-                        return true;
-                    }
+        popup.setOnMenuItemClickListener(item -> {
+            if(from.equals("gallery")) {
+                if (item.toString().equals("IMAGE")) {
+                    Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                    photoPickerIntent.setType("image/*");
+                    startActivityForResult(photoPickerIntent, LOAD_IMG_REQUEST_CODE);
+                    return true;
                 }
-                if(from.equals("camera")){
-                    if (item.toString().equals("IMAGE")) {
-                        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-
-                        // create a file to save the video
-                        fileUri = FileProvider.getUriForFile(DayActivity.this, DayActivity.this.getApplicationContext().getPackageName() + ".provider", Objects.requireNonNull(getOutputMediaFile(MEDIA_TYPE_IMAGE)));
-
-                        // set the image file name
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                        intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
-
-                        // start the Image Capture Intent
-                        startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
-                        return true;
-                    }
-                    if (item.toString().equals("VIDEO")) {
-
-                        Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-
-                        // create a file to save the video
-                        fileUri = FileProvider.getUriForFile(DayActivity.this, BuildConfig.APPLICATION_ID + ".provider", Objects.requireNonNull(getOutputMediaFile(MEDIA_TYPE_VIDEO)));
-                        // set the image file name
-                        intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
-
-                        // set the video image quality to high
-                        intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
-                        // start the Video Capture Intent
-                        startActivityForResult(intent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
-                        return true;
-                    }
+                if (item.toString().equals("VIDEO")) {
+                    Intent videoPickerIntent = new Intent(Intent.ACTION_PICK);
+                    videoPickerIntent.setType("video/*");
+                    startActivityForResult(videoPickerIntent, LOAD_VIDEO_REQUEST_CODE);
+                    return true;
+                }
             }
-                return false;
-            }
+            if(from.equals("camera")){
+                if (item.toString().equals("IMAGE")) {
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+                    // create a file to save the video
+                    fileUri = FileProvider.getUriForFile(DayActivity.this, DayActivity.this.getApplicationContext().getPackageName() + ".provider", Objects.requireNonNull(getOutputMediaFile(MEDIA_TYPE_IMAGE)));
+
+                    // set the image file name
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
+
+                    // start the Image Capture Intent
+                    startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
+                    return true;
+                }
+                if (item.toString().equals("VIDEO")) {
+
+                    Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+
+                    // create a file to save the video
+                    fileUri = FileProvider.getUriForFile(DayActivity.this, BuildConfig.APPLICATION_ID + ".provider", Objects.requireNonNull(getOutputMediaFile(MEDIA_TYPE_VIDEO)));
+                    // set the image file name
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
+
+                    // set the video image quality to high
+                    intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1);
+                    // start the Video Capture Intent
+                    startActivityForResult(intent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
+                    return true;
+                }
+        }
+            return false;
         });
+        if (checkPermission(Manifest.permission.CAMERA)) {
+            //do your work
+        } else {
+            requestPermission(Manifest.permission.CAMERA);
+        }
         popup.show();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public static String getFullPathFromContentUri(final Context context, final Uri uri) {
 
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
         // DocumentProvider
-        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
+        if (isDocumentUri(context, uri)) {
             // ExternalStorageProvider
             if ("com.android.externalstorage.documents".equals(uri.getAuthority())) {
-                final String docId = DocumentsContract.getDocumentId(uri);
+                final String docId = getDocumentId(uri);
                 final String[] split = docId.split(":");
                 final String type = split[0];
 
@@ -494,26 +422,22 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
             // DownloadsProvider
             else if ("com.android.providers.downloads.documents".equals(uri.getAuthority())) {
 
-                final String id = DocumentsContract.getDocumentId(uri);
-                final Uri contentUri = ContentUris.withAppendedId(
+                final String id = getDocumentId(uri);
+                final Uri contentUri;
+                contentUri = ContentUris.withAppendedId(
                         Uri.parse("content://downloads/public_downloads"), Long.parseLong(id));
 
-                return getDataColumn(context, contentUri, null, null);
+                return getDataColumn(context, contentUri);
             }
             // MediaProvider
             else if ("com.android.providers.media.documents".equals(uri.getAuthority())) {
-                final String docId = DocumentsContract.getDocumentId(uri);
+                final String docId = getDocumentId(uri);
                 final String[] split = docId.split(":");
-                final String type = split[0];
 
-                Uri contentUri = null;
-                if ("image".equals(type)) {
-                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                } else if ("video".equals(type)) {
-                    contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-                } else if ("audio".equals(type)) {
-                    contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-                }
+//                if ("image".equals(type)) {
+//                } else if ("video".equals(type)) {
+//                } else if ("audio".equals(type)) {
+//                }
 
                 final String selection = "_id=?";
                 final String[] selectionArgs = new String[]{
@@ -542,7 +466,7 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         }
         // MediaStore (and general)
         else if ("content".equalsIgnoreCase(uri.getScheme())) {
-            return getDataColumn(context, uri, null, null);
+            return getDataColumn(context, uri);
         }
         // File
         else if ("file".equalsIgnoreCase(uri.getScheme())) {
@@ -575,13 +499,12 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         }
     }
 
-    private static String getDataColumn(Context context, Uri uri, String selection,
-                                        String[] selectionArgs) {
+    private static String getDataColumn(Context context, Uri uri) {
 
         final String column = "_data";
         final String[] projection = {column};
         try {
-            try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
+            try (Cursor cursor = context.getContentResolver().query(uri, projection, null, null,
                     null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     final int column_index = cursor.getColumnIndexOrThrow(column);
@@ -616,6 +539,35 @@ public class DayActivity extends AppCompatActivity implements ImageAdapter.ItemC
         super.onDestroy();
         thread.quit();
     }
+    protected boolean checkPermission(String type) {
+        if(type.equals(Manifest.permission.CAMERA)){
+            if (ContextCompat.checkSelfPermission(this, type) == PackageManager.PERMISSION_GRANTED) {
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
 
+    protected void requestPermission(String type) {
+        if(type.equals(Manifest.permission.CAMERA)){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, type)) {
+                Toast.makeText(this, "Write External Storage permission allows us to do store images. Please allow this permission in App Settings.", Toast.LENGTH_LONG).show();
+            }
+            else {
+                requestPermissions(new String[]{type}, 100);
+            }}
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+        if (requestCode == 200) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.e("value", "Permission Granted");
+            } else {
+                Log.e("value", "Permission Denied, You cannot use camera.");
+            }
+        }
+    }
 }
 

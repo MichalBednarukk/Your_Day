@@ -13,7 +13,7 @@
         app:menu="@menu/navigation_menu"
         android:layout_gravity="start"
         app:headerLayout="@layout/nav_header"
-        android:id="@+id/nv">
+        android:id="@+id/navigation_view">
     </com.google.android.material.navigation.NavigationView>
 
 <LinearLayout xmlns:tools="http://schemas.android.com/tools"
