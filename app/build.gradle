@@ -30,6 +30,7 @@ android {
 
 dependencies {
     //noinspection GradleCompatible,GradleCompatible
+    implementation 'com.emc.thye:VerticalCalendar:1.0.4'
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'

@@ -25,12 +25,10 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder>{
     Context context;
     ItemClicked activity;
 
-
     public interface ItemClicked{
         void OnItemClicked(int index,String event);
 
         }
-
 
     public ImageAdapter(Context context, ArrayList<MediaModel> imagesList){
         mediaModels = imagesList;
@@ -94,6 +92,4 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder>{
     public int getItemCount() {
         return mediaModels.size();
     }
-
-
 }
