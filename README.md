@@ -1,8 +1,10 @@
  # Your Day App
+ ### [Try my app in online emulator](https://appetize.io/app/ve9tdh19fyuyf6c8whvznrbd8w)
 
 Memories of the day app created with Java and SQLite.
 
-![Aplication Screen](./screen/Screen2.jpg) ![Aplication Screen](./screen/Screen1.jpg)
+![Aplication Screen](./screen/screen6.jpg) ![Aplication Screen](./screen/screen7.jpg)
+![Aplication Screen](./screen/screen4.jpg) ![Aplication Screen](./screen/screen5.jpg)
 ---
  # General info
 It is a simple application used to store pictures and video as a souvenir of the day.
