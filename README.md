@@ -1,5 +1,5 @@
  # Your Day App
- ### [Try my app in online emulator](https://appetize.io/app/ve9tdh19fyuyf6c8whvznrbd8w)
+ ### [Try my app in online emulator](https://appetize.io/app/qghggmkd4kg66daedcy3f04xec?device=pixel4&scale=75&orientation=portrait&osVersion=10.0)
 
 Memories of the day app created with Java and SQLite.
 
