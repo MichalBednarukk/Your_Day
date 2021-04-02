@@ -4,50 +4,61 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
-
 import android.os.Environment;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
-import android.widget.CalendarView;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.your_day.DayAdapter;
 import com.example.your_day.R;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.Profile;
+import com.facebook.login.LoginResult;
+import com.facebook.login.widget.LoginButton;
 import com.google.android.material.navigation.NavigationView;
 
-
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 import java.time.LocalDate;
 import java.time.ZoneId;
-
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Objects;
 
-
 public class MainActivity extends AppCompatActivity implements DayAdapter.ItemClicked {
-    public CalendarView calendarView;
     private ArrayList<Integer> dayList;
     protected MainActivity ActivityContext = null;
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle drawerToggle;
-    private RecyclerView recyclerView;
     private DayAdapter myAdapter;
-
+    private CallbackManager callbackManager;
+    private Profile profile;
+    TextView tvName, tvSurname;
+    ImageView imageView;
     @RequiresApi(api = Build.VERSION_CODES.O)
     @SuppressLint({"NonConstantResourceId", "RtlHardcoded"})
     @Override
@@ -55,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ActivityContext = this;
+
         drawerLayout = findViewById(R.id.activity_main);
         drawerToggle = new ActionBarDrawerToggle(this, drawerLayout, 0, 0);
         drawerLayout.addDrawerListener(drawerToggle);
@@ -62,7 +74,36 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
         Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
         NavigationView navigationView = findViewById(R.id.navigation_view);
         navigationView.bringToFront();
-        recyclerView = findViewById(R.id.recyclerViewMain);
+        View headerView = navigationView.getHeaderView(0);
+        tvName = headerView.findViewById(R.id.Name);
+        tvSurname = headerView.findViewById(R.id.Surname);
+        imageView = headerView.findViewById(R.id.imageView);
+        RecyclerView recyclerView = findViewById(R.id.recyclerViewMain);
+        callbackManager = CallbackManager.Factory.create();
+        LoginButton loginButton = (LoginButton) headerView.findViewById(R.id.login_button);
+
+        // Callback registration
+        loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                profile = Profile.getCurrentProfile();// App code
+                tvName.setText(profile.getFirstName());
+                tvSurname.setText(profile.getLastName());
+                Glide.with(getApplicationContext())
+                        .load(profile.getProfilePictureUri(100,100))
+                        .into(imageView);
+            }
+
+            @Override
+            public void onCancel() {
+                // App code
+            }
+
+            @Override
+            public void onError(FacebookException error) {
+
+            }
+        });
         dayList = new ArrayList<>();
         for (int i = 0; i <= 700; i++) {
             dayList.add(i);
@@ -158,10 +199,7 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
     }
 
     protected boolean checkPermission(String type) {
-        if (ContextCompat.checkSelfPermission(this, type) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-        return false;
+        return ContextCompat.checkSelfPermission(this, type) == PackageManager.PERMISSION_GRANTED;
     }
 
     protected void requestPermission(String type) {
@@ -169,18 +207,14 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, type)) {
                 Toast.makeText(this, "Write External Storage permission allows us to do store images. Please allow this permission in App Settings.", Toast.LENGTH_LONG).show();
             } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    requestPermissions(new String[]{type}, 100);
-                }
+                requestPermissions(new String[]{type}, 100);
             }
         }
         if (type.equals(Manifest.permission.READ_EXTERNAL_STORAGE)) {
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, type)) {
                 Toast.makeText(this, "Write External Storage permission allows us to do store images. Please allow this permission in App Settings.", Toast.LENGTH_LONG).show();
             } else {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    requestPermissions(new String[]{type}, 200);
-                }
+                requestPermissions(new String[]{type}, 200);
             }
         }
     }
@@ -252,5 +286,10 @@ public class MainActivity extends AppCompatActivity implements DayAdapter.ItemCl
                 , DayActivity.class);
         intent.putExtra("DATE", date);
         startActivity(intent);
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        callbackManager.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode, resultCode, data);
     }
 }
